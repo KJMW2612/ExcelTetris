@@ -116,6 +116,65 @@ namespace ExcelTetris
             }
         }
 
+        // [신규 보안 해결책] 저장 단추 입력 시 파일 내의 테트리스 게임 흔적을 즉석에서 완전하게 소멸시키는 가드 함수
+        public void CleanUpBeforeSave(Excel.Workbook wb)
+        {
+            Excel.Application app = Globals.ThisAddIn.Application;
+            bool originalDisplayAlerts = app.DisplayAlerts;
+
+            try
+            {
+                // 시트 영구삭제 경고창("이 시트를 영구적으로 삭제합니까?")이 팝업되는 것을 비동기로 방지합니다.
+                app.DisplayAlerts = false;
+
+                Excel.Worksheet targetSheet = null;
+                foreach (Excel.Worksheet ws in wb.Worksheets)
+                {
+                    if (ws.Name == "Tetris")
+                    {
+                        targetSheet = ws;
+                        break;
+                    }
+                }
+
+                if (targetSheet != null)
+                {
+                    // 1. 동작 중인 실시간 낙하 타이머 중단
+                    End();
+
+                    // 2. 현재 열려있는 테트리스 시트 이외의 업무용 대체 시트 색인
+                    Excel.Worksheet alternativeSheet = null;
+                    foreach (Excel.Worksheet ws in wb.Worksheets)
+                    {
+                        if (ws.Name != "Tetris")
+                        {
+                            alternativeSheet = ws;
+                            break;
+                        }
+                    }
+
+                    // 3. 만약 파일 내에 업무용 시트가 아예 존재하지 않는 최악의 경우, 일반 시트 강제 가설
+                    if (alternativeSheet == null)
+                    {
+                        alternativeSheet = wb.Worksheets.Add() as Excel.Worksheet;
+                    }
+
+                    // 4. 활성화 화면을 업무용 시트로 피신 변경 (활성 시트 자체는 삭제가 거부되는 엑셀 룰 방어)
+                    alternativeSheet.Activate();
+
+                    // 5. 파일 내부에서 테트리스 흔적 시트 영구 파괴
+                    targetSheet.Delete();
+                    _tetrisSheet = null;
+                }
+            }
+            catch { }
+            finally
+            {
+                // 원래 상태로 경고 알림 복구
+                app.DisplayAlerts = originalDisplayAlerts;
+            }
+        }
+
         public void End()
         {
             _timer.Stop();
@@ -349,7 +408,7 @@ namespace ExcelTetris
             ctrlLabel.Merge();
             ctrlLabel.Value2 = "CONTROLS";
             StyleLabel(ctrlLabel);
-            ctrlLabel.Font.Color = ColorTranslator.ToOle(Color.Black); // 검은색 가이드 타이틀
+            ctrlLabel.Font.Color = ColorTranslator.ToOle(Color.Black);
             ctrlLabel.Font.Size = 11;
 
             string[] controlLines = new string[] {
@@ -361,7 +420,7 @@ namespace ExcelTetris
                 "E : 반시계 회전",
                 "Q : 홀드(보관/교체)",
                 "F : 흑백 모드 토글",
-                "ESC : 긴급 숨김" // 마지막 항목 (빨간색 강조 대상)
+                "ESC : 긴급 숨김"
             };
 
             for (int i = 0; i < controlLines.Length; i++)
@@ -373,19 +432,18 @@ namespace ExcelTetris
                 lineRange.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
                 lineRange.VerticalAlignment = Excel.XlVAlign.xlVAlignCenter;
                 lineRange.Font.Name = "Consolas";
-                lineRange.Font.Size = 10; // 기존 9에서 10으로 서체 크기 증가
+                lineRange.Font.Size = 10;
 
-                // [개선] 박스 채우기와 테두리 선을 없애 기본 백그라운드 무지에 검은 텍스트가 바로 녹아들도록 설정합니다.
                 lineRange.Interior.ColorIndex = Excel.XlColorIndex.xlColorIndexNone;
 
-                if (i == 8) // ESC 긴급 숨김 강조
+                if (i == 8)
                 {
-                    lineRange.Font.Color = ColorTranslator.ToOle(Color.FromArgb(235, 30, 30)); // 눈에 잘 띄는 선명한 빨간색
-                    lineRange.Font.Bold = true; // 가독성을 위한 볼드(굵게) 처리 추가
+                    lineRange.Font.Color = ColorTranslator.ToOle(Color.FromArgb(235, 30, 30));
+                    lineRange.Font.Bold = true;
                 }
                 else
                 {
-                    lineRange.Font.Color = ColorTranslator.ToOle(Color.Black); // 깔끔한 기본 검은색 텍스트
+                    lineRange.Font.Color = ColorTranslator.ToOle(Color.Black);
                     lineRange.Font.Bold = false;
                 }
             }
