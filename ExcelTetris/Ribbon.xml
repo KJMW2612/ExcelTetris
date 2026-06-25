@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="Ribbon_Load">
+	<ribbon>
+		<tabs>
+			<tab id="tabExcelTetris" label="Excel T">
+				<group id="grpGameControls" label="Game Controls">
+					<!-- 통합 시작 버튼 (언제 클릭해도 안전하게 기존 판을 완전히 폐기하고 즉시 리셋 후 재구동) -->
+					<button id="btnStart" label="시작" size="large" onAction="OnStartGame" imageMso="MacroPlay" />
+					<button id="btnEnd" label="종료" size="large" onAction="OnEndGame" imageMso="PrintPreviewClose" />
+					<button id="btnGrayscale" label="흑백 모드 토글" size="large" onAction="OnToggleGrayscale" imageMso="Filters" />
+					<button id="btnResetHS" label="최고점수 초기화" size="large" onAction="OnResetHighScore" imageMso="Delete" />
+				</group>
+			</tab>
+		</tabs>
+	</ribbon>
+</customUI>
